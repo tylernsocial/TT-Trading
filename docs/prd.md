@@ -5,7 +5,7 @@
 
 ## 1. Overview
 
-The Market Intelligence & Paper Trading Platform is a full-stack web application that allows users to research publicly traded companies and experiment with investing using simulated money.
+The Market Intelligence & Paper Trading Platform is a research-focused full-stack application that combines market data, company fundamentals, SEC filings, and eventually company-event analysis with simulated portfolio management.
 
 The platform will combine historical stock data, company financial information, SEC filings, watchlists, and paper-trading tools in one place. Over time, it may also include portfolio analytics, backtesting, alerts, and an AI research assistant that uses real financial data retrieved by the backend.
 
