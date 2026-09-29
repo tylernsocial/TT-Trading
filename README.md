@@ -32,7 +32,7 @@ The application will **not execute real-money trades**.
 ### Frontend
 
 * React
-* TypeScript
+* JavaScript
 * Vite
 * Tailwind CSS
 * TanStack Query
