@@ -1,0 +1,7 @@
+@app.get("/api/health") → creates a backend GET endpoint
+fetch() → React sends an HTTP request
+response.json() → turns the JSON response into usable JavaScript data
+useState() → stores the backend data
+useEffect() → runs the request when the component initially loads
+CORS → tells FastAPI which frontend origins the browser may allow
+JSON → the format we're using to transfer data between frontend and backend
