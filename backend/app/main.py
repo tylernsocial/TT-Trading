@@ -1,5 +1,13 @@
-from fastapi import FastAPI
+from typing import Annotated
+
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+
+from services.market_data import (
+    MarketDataConfigurationError,
+    MarketDataServiceError,
+    search_symbols,
+)
 
 app = FastAPI(title="TT-Trading API")
 app.add_middleware(
@@ -16,3 +24,24 @@ def health_check():
         "status": "ok",
         "message": "TT-Trading API is running"
     }
+
+
+# Search Twelve Data for stocks matching a symbol or company name.
+@app.get("/api/stocks/search")
+async def search_stocks(
+    query: Annotated[
+        str, Query(min_length=1, description="Stock symbol or company name")
+    ],
+):
+    cleaned_query = query.strip()
+    if not cleaned_query:
+        raise HTTPException(status_code=400, detail="Query must not be empty")
+
+    try:
+        results = await search_symbols(cleaned_query)
+    except MarketDataConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except MarketDataServiceError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {"query": cleaned_query, "results": results}
