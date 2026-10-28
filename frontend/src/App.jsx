@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import StockSearch from "./components/stockSearch";
 
 function App() {
   const [message, setMessage] = useState('')
@@ -15,7 +16,9 @@ function App() {
       <h1>TT-Trading</h1>
       <p>Market Intelligence &amp; Paper Trading Platform</p>
       <p>{message}</p>
+      <StockSearch />
     </main>
+    
   )
 }
 
