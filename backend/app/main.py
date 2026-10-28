@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from services.market_data import (
+from services.marketData import (
     MarketDataConfigurationError,
     MarketDataServiceError,
     search_symbols,
