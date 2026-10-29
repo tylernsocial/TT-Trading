@@ -7,6 +7,7 @@ function StockSearch() {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
   // Submit the search request without reloading the page.
   async function handleSubmit(event) {
   event.preventDefault();
@@ -17,6 +18,7 @@ function StockSearch() {
   }
   
   // Show the request state and clear any message from a previous search.
+  setHasSearched(true);
   setLoading(true);
   setError("");
 
@@ -66,7 +68,7 @@ function StockSearch() {
 
       {error && <p>{error}</p>}
 
-      {!loading && !error && results.length === 0 && searchTerm && (
+      {hasSearched && !loading && !error && results.length === 0 && (
       <p>No results found.</p>
     )}
 
