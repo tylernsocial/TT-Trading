@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import StockSearchResult from "./stockSearchResults";
 function StockSearch() {
   // Store the text entered by the user in the search field.
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,13 +74,10 @@ function StockSearch() {
       {/* Render each stock returned by the backend search. */}
       <div>
         {results.map((stock, index) => (
-          <div key={index}>
-            <h3>{stock.symbol}</h3>
-            <p>{stock.name}</p>
-            <p>
-              {stock.exchange} | {stock.country} | {stock.currency}
-            </p>
-          </div>
+          <StockSearchResult
+            key={index}
+            stock={stock}
+          />
         ))}
       </div>
     </div>
