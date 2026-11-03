@@ -19,6 +19,7 @@ function App() {
       <p>Market Intelligence &amp; Paper Trading Platform</p>
       <p>{message}</p>
       <Routes>
+        {/* Show the search page at the root and stock details for a selected symbol. */}
         <Route path="/" element={<StockSearch />} />
         <Route path="/stocks/:symbol" element={<StockDetail />} />
       </Routes>
@@ -27,4 +28,3 @@ function App() {
 }
 
 export default App
-
