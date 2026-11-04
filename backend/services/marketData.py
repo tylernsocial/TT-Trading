@@ -82,17 +82,21 @@ async def get_stock_quote(symbol: str):
     # Fetch the latest quote from Twelve Data and return the fields used by the UI.
     url = "https://api.twelvedata.com/quote"
     api_key = os.getenv("TWELVE_DATA_API_KEY")
+    # Send the symbol and backend-only API key as query parameters.
     params = {
         "symbol": symbol,
         "apikey": api_key,
     }
 
+    # Make the external request and surface HTTP errors to the caller.
     async with httpx.AsyncClient() as client:
         response = await client.get(url, params=params)
         response.raise_for_status()
 
+    # Keep the response mapping stable even if Twelve Data adds extra fields.
     data = response.json()
 
+    # Normalize Twelve Data's quote fields to the API shape used by the frontend.
     return {
         "symbol": data.get("symbol"),
         "name": data.get("name"),
