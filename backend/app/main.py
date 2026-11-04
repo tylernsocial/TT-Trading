@@ -9,6 +9,8 @@ from services.marketData import (
     search_symbols,
 )
 
+from services.marketData import get_stock_quote
+
 app = FastAPI(title="TT-Trading API")
 app.add_middleware(
     CORSMiddleware,
@@ -45,3 +47,8 @@ async def search_stocks(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {"query": cleaned_query, "results": results}
+
+@app.get("/api/stocks/{symbol}/quote")
+async def stock_quote(symbol: str):
+    # Return the latest market quote for the requested stock symbol.
+    return await get_stock_quote(symbol)

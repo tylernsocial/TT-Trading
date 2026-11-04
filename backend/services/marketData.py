@@ -77,3 +77,34 @@ async def search_symbols(query: str) -> list[dict[str, Any]]:
         for item in data
         if isinstance(item, dict)
     ]
+
+async def get_stock_quote(symbol: str):
+    # Fetch the latest quote from Twelve Data and return the fields used by the UI.
+    url = "https://api.twelvedata.com/quote"
+    api_key = os.getenv("TWELVE_DATA_API_KEY")
+    params = {
+        "symbol": symbol,
+        "apikey": api_key,
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, params=params)
+        response.raise_for_status()
+
+    data = response.json()
+
+    return {
+        "symbol": data.get("symbol"),
+        "name": data.get("name"),
+        "exchange": data.get("exchange"),
+        "currency": data.get("currency"),
+        "price": data.get("close"),
+        "open": data.get("open"),
+        "high": data.get("high"),
+        "low": data.get("low"),
+        "previous_close": data.get("previous_close"),
+        "change": data.get("change"),
+        "percent_change": data.get("percent_change"),
+        "volume": data.get("volume"),
+        "is_market_open": data.get("is_market_open"),
+    }
