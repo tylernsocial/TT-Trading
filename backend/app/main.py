@@ -57,4 +57,5 @@ async def stock_quote(symbol: str):
 
 @app.get("/api/stocks/{symbol}/history")
 async def stock_history(symbol: str):
+    # Return the latest daily price history for the requested stock symbol.
     return await get_stock_history(symbol)
