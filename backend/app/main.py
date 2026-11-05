@@ -7,9 +7,11 @@ from services.marketData import (
     MarketDataConfigurationError,
     MarketDataServiceError,
     search_symbols,
+    get_stock_quote,
+    get_stock_history
 )
 
-from services.marketData import get_stock_quote
+
 
 app = FastAPI(title="TT-Trading API")
 app.add_middleware(
@@ -52,3 +54,7 @@ async def search_stocks(
 async def stock_quote(symbol: str):
     # Return the latest market quote for the requested stock symbol.
     return await get_stock_quote(symbol)
+
+@app.get("/api/stocks/{symbol}/history")
+async def stock_history(symbol: str):
+    return await get_stock_history(symbol)

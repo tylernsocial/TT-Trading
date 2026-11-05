@@ -10,10 +10,11 @@ from dotenv import load_dotenv
 # Twelve Data endpoint and timeout used for stock symbol searches.
 TWELVE_DATA_SEARCH_URL = "https://api.twelvedata.com/symbol_search"
 REQUEST_TIMEOUT_SECONDS = 10.0
-
 # Load the backend API key from the local .env file when available.
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
-
+API_KEY = os.getenv("TWELVE_DATA_API_KEY")
+if not API_KEY:
+    raise RuntimeError("TWELVE_DATA_API_KEY is not configured.")
 
 class MarketDataServiceError(Exception):
     """Raised when Twelve Data cannot complete a request."""
@@ -29,8 +30,7 @@ class MarketDataResponseError(MarketDataServiceError):
 
 async def search_symbols(query: str) -> list[dict[str, Any]]:
     # The API key is required before making any external request.
-    api_key = os.getenv("TWELVE_DATA_API_KEY")
-    if not api_key or not api_key.strip():
+    if not API_KEY or not API_KEY.strip():
         raise MarketDataConfigurationError(
             "TWELVE_DATA_API_KEY is not configured on the backend"
         )
@@ -40,7 +40,7 @@ async def search_symbols(query: str) -> list[dict[str, Any]]:
         async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
             response = await client.get(
                 TWELVE_DATA_SEARCH_URL,
-                params={"symbol": query, "apikey": api_key},
+                params={"symbol": query, "apikey": API_KEY},
             )
             response.raise_for_status()
     except httpx.HTTPError as exc:
@@ -81,11 +81,11 @@ async def search_symbols(query: str) -> list[dict[str, Any]]:
 async def get_stock_quote(symbol: str):
     # Fetch the latest quote from Twelve Data and return the fields used by the UI.
     url = "https://api.twelvedata.com/quote"
-    api_key = os.getenv("TWELVE_DATA_API_KEY")
+    
     # Send the symbol and backend-only API key as query parameters.
     params = {
         "symbol": symbol,
-        "apikey": api_key,
+        "apikey": API_KEY,
     }
 
     # Make the external request and surface HTTP errors to the caller.
@@ -111,4 +111,45 @@ async def get_stock_quote(symbol: str):
         "percent_change": data.get("percent_change"),
         "volume": data.get("volume"),
         "is_market_open": data.get("is_market_open"),
+    }
+
+async def get_stock_history(symbol: str):
+    # Request the latest 30 daily candles for the selected symbol.
+    url = "https://api.twelvedata.com/time_series"
+  
+    params = {
+        "symbol": symbol,
+        "interval": "1day",
+        "outputsize": 30,
+        "apikey": API_KEY,
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, params=params)
+        response.raise_for_status()
+
+    data = response.json()
+
+    # Twelve Data returns historical entries under the "values" key.
+    values = data.get("values", [])
+
+    cleaned_values = []
+
+    for item in values:
+        # Keep only the fields consumed by the API response.
+        cleaned_values.append(
+            {
+                "datetime": item.get("datetime"),
+                "open": item.get("open"),
+                "high": item.get("high"),
+                "low": item.get("low"),
+                "close": item.get("close"),
+                "volume": item.get("volume"),
+            }
+        )
+
+    return {
+        "symbol": symbol.upper(),
+        "interval": "1day",
+        "values": cleaned_values,
     }
