@@ -45,16 +45,19 @@ function StockDetail() {
     }
     async function fetchHistory() {
     try {
+      // Request daily price history for the stock selected in the route.
       const response = await fetch(
         `http://127.0.0.1:8000/api/stocks/${symbol}/history`
       );
 
+      // Treat non-2xx responses as failed history requests.
       if (!response.ok) {
         throw new Error("Failed to fetch stock history.");
       }
 
       const data = await response.json();
 
+      // Convert closing prices to numbers and order entries chronologically for the chart.
       const formattedHistory = data.values
         .map((item) => ({
           ...item,
@@ -62,8 +65,10 @@ function StockDetail() {
         }))
         .reverse();
 
+      // Store the normalized history so the chart can render it.
       setHistory(formattedHistory);
     } catch (error) {
+      // Log history failures without preventing the quote from being displayed.
       console.error("History error:", error);
     }
   }
@@ -89,7 +94,7 @@ function StockDetail() {
     return <p>No stock information available.</p>;
   }
 
-  // Render the loaded quote's identity, pricing, trading range, and market status.
+  // Render the stock quote details and the history chart when historical data is available.
   return (
     <div>
       <h2>
