@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -56,6 +56,17 @@ async def stock_quote(symbol: str):
     return await get_stock_quote(symbol)
 
 @app.get("/api/stocks/{symbol}/history")
-async def stock_history(symbol: str):
+async def stock_history(
+    symbol: str,
+    period: Annotated[
+        Literal["1M", "3M", "6M", "1Y"],
+        Query(description="Historical price range"),
+    ] = "1M",
+):
     # Return the latest daily price history for the requested stock symbol.
-    return await get_stock_history(symbol)
+    try:
+        return await get_stock_history(symbol, period)
+    except MarketDataConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except MarketDataServiceError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

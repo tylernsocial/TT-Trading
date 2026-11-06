@@ -10,6 +10,12 @@ from dotenv import load_dotenv
 # Twelve Data endpoint and timeout used for stock symbol searches.
 TWELVE_DATA_SEARCH_URL = "https://api.twelvedata.com/symbol_search"
 REQUEST_TIMEOUT_SECONDS = 10.0
+HISTORY_OUTPUT_SIZES = {
+    "1M": 22,
+    "3M": 66,
+    "6M": 132,
+    "1Y": 252,
+}
 # Load the backend API key from the local .env file when available.
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 API_KEY = os.getenv("TWELVE_DATA_API_KEY")
@@ -113,25 +119,43 @@ async def get_stock_quote(symbol: str):
         "is_market_open": data.get("is_market_open"),
     }
 
-async def get_stock_history(symbol: str):
-    # Request the latest 30 daily candles for the selected symbol.
+async def get_stock_history(symbol: str, period: str = "1M"):
+    # Request enough daily candles for the selected historical range.
     url = "https://api.twelvedata.com/time_series"
   
     params = {
         "symbol": symbol,
         "interval": "1day",
-        "outputsize": 30,
+        "outputsize": HISTORY_OUTPUT_SIZES[period],
         "apikey": API_KEY,
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, params=params)
-        response.raise_for_status()
+    try:
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise MarketDataServiceError("Twelve Data request failed") from exc
 
-    data = response.json()
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise MarketDataResponseError("Twelve Data returned invalid JSON") from exc
+
+    if not isinstance(data, dict):
+        raise MarketDataResponseError("Twelve Data returned an unexpected response")
+
+    if data.get("status") == "error":
+        message = data.get("message")
+        detail = message if isinstance(message, str) else "Twelve Data returned an error"
+        raise MarketDataServiceError(detail)
 
     # Twelve Data returns historical entries under the "values" key.
-    values = data.get("values", [])
+    values = data.get("values")
+    if not isinstance(values, list):
+        raise MarketDataResponseError(
+            "Twelve Data response did not include price history"
+        )
 
     cleaned_values = []
 
