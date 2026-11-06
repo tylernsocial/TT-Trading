@@ -37,3 +37,25 @@ p {
   color: #59657a;
 }
 
+.price-range-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.price-range-buttons button {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #aab3c2;
+  border-radius: 0.25rem;
+  background: #ffffff;
+  color: #172033;
+  cursor: pointer;
+}
+
+.price-range-buttons button.selected {
+  border-color: #315efb;
+  background: #315efb;
+  color: #ffffff;
+}
+
