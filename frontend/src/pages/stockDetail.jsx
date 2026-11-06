@@ -12,6 +12,9 @@ function StockDetail() {
   const [error, setError] = useState("");
   // Will store the array returned from (ie:/api/stocks/AAPL/history)
   const [history, setHistory] = useState([]);
+  const [selectedPeriod, setSelectedPeriod] = useState("1M");
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState("");
 
   useEffect(() => {
     async function fetchQuote() {
@@ -43,40 +46,61 @@ function StockDetail() {
         setLoading(false);
       }
     }
-    async function fetchHistory() {
-    try {
-      // Request daily price history for the stock selected in the route.
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/stocks/${symbol}/history`
-      );
-
-      // Treat non-2xx responses as failed history requests.
-      if (!response.ok) {
-        throw new Error("Failed to fetch stock history.");
-      }
-
-      const data = await response.json();
-
-      // Convert closing prices to numbers and order entries chronologically for the chart.
-      const formattedHistory = data.values
-        .map((item) => ({
-          ...item,
-          close: Number(item.close),
-        }))
-        .reverse();
-
-      // Store the normalized history so the chart can render it.
-      setHistory(formattedHistory);
-    } catch (error) {
-      // Log history failures without preventing the quote from being displayed.
-      console.error("History error:", error);
-    }
-  }
-
     // Load a new quote whenever the route's stock symbol changes. (dependency array)
     fetchQuote();
-    fetchHistory();
   }, [symbol]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchHistory() {
+      try {
+        setHistoryLoading(true);
+        setHistoryError("");
+
+        // Request the selected daily price range for the stock in the route.
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/stocks/${encodeURIComponent(symbol)}/history?period=${selectedPeriod}`,
+          { signal: controller.signal }
+        );
+
+        // Treat non-2xx responses as failed history requests.
+        if (!response.ok) {
+          throw new Error("Failed to fetch stock history.");
+        }
+
+        const data = await response.json();
+
+        // Convert closing prices to numbers and order entries chronologically for the chart.
+        const formattedHistory = data.values
+          .map((item) => ({
+            ...item,
+            close: Number(item.close),
+          }))
+          .sort((first, second) =>
+            first.datetime.localeCompare(second.datetime)
+          );
+
+        // Replace the previous range with the normalized history.
+        setHistory(formattedHistory);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          // Keep quote data and any previous chart visible when a range request fails.
+          console.error("History error:", error);
+          setHistoryError("Unable to load price history.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setHistoryLoading(false);
+        }
+      }
+    }
+
+    fetchHistory();
+
+    // Cancel an obsolete request when the symbol or period changes.
+    return () => controller.abort();
+  }, [symbol, selectedPeriod]);
   
 
   // Show a loading message until the quote request completes.
@@ -120,9 +144,13 @@ function StockDetail() {
       <p>
         Market: {quote.is_market_open ? "Open" : "Closed"}
       </p>
-      {history.length > 0 && (
-        <StockPriceChart data={history} />
-      )}
+      <StockPriceChart
+        data={history}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={setSelectedPeriod}
+        loading={historyLoading}
+        error={historyError}
+      />
     </div>
   );
 }
