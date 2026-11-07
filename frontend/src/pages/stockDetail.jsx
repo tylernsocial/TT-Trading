@@ -12,8 +12,11 @@ function StockDetail() {
   const [error, setError] = useState("");
   // Will store the array returned from (ie:/api/stocks/AAPL/history)
   const [history, setHistory] = useState([]);
+  // Stores the selected historical time range for the chart.
   const [selectedPeriod, setSelectedPeriod] = useState("1M");
+  // Tells whether the historical price request is still happening.
   const [historyLoading, setHistoryLoading] = useState(true);
+  // Stores an error message from the historical price request.
   const [historyError, setHistoryError] = useState("");
 
   useEffect(() => {
