@@ -11,6 +11,8 @@ from services.marketData import (
     get_stock_history
 )
 
+from services.secData import get_cik_for_symbol
+
 
 
 app = FastAPI(title="TT-Trading API")
