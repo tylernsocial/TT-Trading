@@ -11,7 +11,7 @@ from services.marketData import (
     get_stock_history
 )
 
-from services.secData import get_cik_for_symbol
+from services.secData import get_company_facts, get_latest_annual_fact
 
 
 
@@ -72,3 +72,17 @@ async def stock_history(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except MarketDataServiceError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/test/sec/{symbol}/net-income")
+async def test_sec_net_income(symbol: str):
+    """Temporarily expose the latest annual net income fact for manual testing."""
+    company_facts = await get_company_facts(symbol)
+    if company_facts is None:
+        raise HTTPException(status_code=404, detail="SEC company not found")
+
+    return get_latest_annual_fact(
+        company_facts,
+        concept="NetIncomeLoss",
+        unit="USD",
+    )

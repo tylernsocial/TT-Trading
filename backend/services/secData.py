@@ -1,4 +1,5 @@
 import os
+from datetime import date
 
 import httpx
 from dotenv import load_dotenv
@@ -84,3 +85,86 @@ async def get_company_facts(symbol: str):
 
     # Company Facts returns the company's raw, filed XBRL facts and metadata.
     return response.json()
+
+
+def get_latest_annual_fact(
+    company_facts: dict,
+    concept: str,
+    unit: str = "USD",
+):
+    """Return the latest annual 10-K fact for a US-GAAP concept and unit."""
+    # Company Facts groups observations first by taxonomy/concept, then by unit.
+    us_gaap_facts = company_facts.get("facts", {}).get("us-gaap", {})
+    concept_facts = us_gaap_facts.get(concept)
+    if not isinstance(concept_facts, dict):
+        return None
+
+    units = concept_facts.get("units", {})
+    facts_for_unit = units.get(unit) if isinstance(units, dict) else None
+    if not isinstance(facts_for_unit, list):
+        return None
+
+    # A concept can appear in several filing types; 10-K limits this helper to
+    # annual reports rather than quarterly or other SEC filings.
+    annual_facts = [
+        fact
+        for fact in facts_for_unit
+        if (
+            isinstance(fact, dict)
+            and fact.get("form") == "10-K"
+            and fact.get("val") is not None
+        )
+    ]
+    if not annual_facts:
+        return None
+
+    # FY identifies facts for the full fiscal year. Prefer those when the SEC
+    # supplies fp, while still allowing older/missing fp metadata on a 10-K.
+    full_year_facts = [fact for fact in annual_facts if fact.get("fp") == "FY"]
+    candidates = full_year_facts or annual_facts
+
+    def parse_sec_date(value):
+        if not isinstance(value, str):
+            return date.min
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return date.min
+
+    def fiscal_year(fact):
+        try:
+            return int(fact.get("fy"))
+        except (TypeError, ValueError):
+            return None
+
+    def latest_fact_key(fact):
+        period_end = parse_sec_date(fact.get("end"))
+        reported_fiscal_year = fiscal_year(fact)
+
+        # Some records omit fy, so the period-end year is a useful fallback.
+        effective_year = (
+            reported_fiscal_year
+            if reported_fiscal_year is not None
+            else period_end.year
+        )
+
+        # SEC arrays can include comparisons and facts repeated in later
+        # filings, so their final element is not necessarily the latest annual
+        # period. Rank by fiscal year, period end, then filing date to resolve
+        # duplicate observations for the same annual period.
+        return (
+            effective_year,
+            period_end,
+            parse_sec_date(fact.get("filed")),
+        )
+
+    latest_fact = max(candidates, key=latest_fact_key)
+
+    return {
+        "value": latest_fact.get("val"),
+        "unit": unit,
+        "fiscal_year": fiscal_year(latest_fact),
+        "period_end": latest_fact.get("end"),
+        "filed": latest_fact.get("filed"),
+        "form": latest_fact.get("form"),
+    }
