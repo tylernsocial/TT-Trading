@@ -62,3 +62,25 @@ async def get_cik_for_symbol(symbol: str):
             }
 
     return None
+
+
+async def get_company_facts(symbol: str):
+    """Fetch the raw SEC Company Facts response for a ticker symbol."""
+    # Company Facts is keyed by CIK, so the ticker must be mapped first.
+    company = await get_cik_for_symbol(symbol)
+    if company is None:
+        return None
+
+    cik = company["cik"]
+
+    # The SEC endpoint requires the CIK in its zero-padded 10-digit form.
+    company_facts_url = (
+        f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+    )
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(company_facts_url, headers=SEC_HEADERS)
+        response.raise_for_status()
+
+    # Company Facts returns the company's raw, filed XBRL facts and metadata.
+    return response.json()
